@@ -1,5 +1,6 @@
 # Ignore Terraform working directories and Terraform State files.
 **/.terraform
+**/terraform.tfvars
 **/terraform.tfstate*
 **/terraform.plan
 **/terraform.auto.tfvars
