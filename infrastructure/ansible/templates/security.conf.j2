@@ -1,0 +1,20 @@
+ServerTokens Prod
+ServerSignature Off
+TraceEnable Off
+
+# Disable directory browsing
+<Directory />
+    Options -Indexes
+</Directory>
+
+# Disable access to .htaccess and other hidden files
+<FilesMatch "^\.ht">
+    Require all denied
+</FilesMatch>
+
+# Set secure headers
+<IfModule mod_headers.c>
+    Header always set X-Content-Type-Options "nosniff"
+    Header always set X-Frame-Options "SAMEORIGIN"
+    Header always set X-XSS-Protection "1; mode=block"
+</IfModule>
