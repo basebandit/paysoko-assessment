@@ -1,9 +1,11 @@
-name: "Terraform Infrastructure Change Management"
+name: "Terraform Plan Apply"
 
 on:
   push:
     branches:
     - main
+    paths:
+    - infrastructure/terraform/**
   pull_request:
     branches:
     - main
@@ -25,10 +27,18 @@ jobs:
   terraform:
     name: "Terraform"
     runs-on: ubuntu-22.04
+    # Only run the full job if Terraform files were changed or if it's a workflow_dispatch
+    if: |
+      github.event_name == 'workflow_dispatch' || 
+      github.event_name == 'push' || 
+      (github.event_name == 'pull_request' && 
+        (contains(github.event.pull_request.changed_files, 'infrastructure/terraform/') || 
+         github.event.pull_request.changed_files == 0))
     permissions:
       contents: read
       pull-requests: write  # This is crucial for commenting on PRs
       issues: write
+      statuses: write
     defaults:
       run:
         shell: bash
@@ -38,12 +48,15 @@ jobs:
     steps:
       - name: Checkout repository
         uses: actions/checkout@v3
+        with:
+          # Set fetch depth to 0 to get all history for all branches and tags
+          fetch-depth: 0
       
       - name: Setup Terraform
         uses: hashicorp/setup-terraform@v2
         with:
           terraform_version: 1.0.0
-          terraform_wrapper: false
+          terraform_wrapper: true # Important for capturing plan output
       
       - name: Terraform Init
         id: init
@@ -56,7 +69,7 @@ jobs:
       
       - name: Terraform Validate
         id: validate
-        run: terraform validate
+        run: terraform validate -no-color
       
       - name: Terraform Plan
         id: plan
@@ -66,9 +79,7 @@ jobs:
       
       - name: Add Plan Comment to PR
         if: github.event_name == 'pull_request'
-        uses: actions/github-script@v6
-        env:
-          PLAN: "${{ steps.plan.outputs.stdout }}"
+        uses: actions/github-script@v7
         with:
           github-token: ${{ secrets.GITHUB_TOKEN }}
           script: |
@@ -80,7 +91,7 @@ jobs:
             <details><summary>Show Plan</summary>
             
             \`\`\`terraform
-            ${process.env.PLAN}
+            ${process.env.TERRAFORM_PLAN || '${{ steps.plan.outputs.stdout }}' || 'No changes detected in the plan.'}
             \`\`\`
             
             </details>
@@ -94,6 +105,36 @@ jobs:
               body: output
             });
       
+      - name: Report Status to PR
+        if: github.event_name == 'pull_request'
+        uses: actions/github-script@v7
+        with:
+          github-token: ${{ secrets.GITHUB_TOKEN }}
+          script: |
+            // Determine state based on previous steps
+            let state = 'success';
+            let description = 'Terraform checks passed';
+            
+            if ('${{ steps.validate.outcome }}' === 'failure') {
+              state = 'failure';
+              description = 'Terraform validation failed';
+            }
+            else if ('${{ steps.plan.outcome }}' === 'failure') {
+              state = 'failure';
+              description = 'Terraform plan failed';
+            }
+            
+            // Create commit status
+            await github.rest.repos.createCommitStatus({
+              owner: context.repo.owner,
+              repo: context.repo.repo,
+              sha: context.payload.pull_request.head.sha,
+              state: state,
+              context: 'terraform',
+              description: description,
+              target_url: `https://github.com/${context.repo.owner}/${context.repo.repo}/actions/runs/${context.runId}`
+            });
+      
       - name: Terraform Plan Status
         if: steps.plan.outcome == 'failure'
         run: exit 1
@@ -101,4 +142,30 @@ jobs:
       - name: Terraform Apply
         if: github.ref == 'refs/heads/main' && github.event_name == 'push'
         run: terraform apply -auto-approve -input=false
-        
+  
+  # Job to handle the case when no Terraform files changed
+  skip-terraform:
+    name: "Skip Terraform"
+    runs-on: ubuntu-22.04
+    # Only run this job if it's a PR and no Terraform files were changed
+    if: |
+      github.event_name == 'pull_request' && 
+      !contains(github.event.pull_request.changed_files, 'infrastructure/terraform/')
+    permissions:
+      statuses: write
+    
+    steps:
+      - name: Report Skipped Status
+        uses: actions/github-script@v7
+        with:
+          github-token: ${{ secrets.GITHUB_TOKEN }}
+          script: |
+            await github.rest.repos.createCommitStatus({
+              owner: context.repo.owner,
+              repo: context.repo.repo,
+              sha: context.payload.pull_request.head.sha,
+              state: 'success',
+              context: 'terraform',
+              description: 'No Terraform changes - check skipped',
+              target_url: `https://github.com/${context.repo.owner}/${context.repo.repo}/actions/runs/${context.runId}`
+            });
