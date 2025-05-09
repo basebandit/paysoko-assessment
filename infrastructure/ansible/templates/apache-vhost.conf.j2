@@ -1,0 +1,23 @@
+<VirtualHost *:80>
+    ServerName {{ app_name }}.example.com
+    ServerAlias {{ public_ip }}
+    
+    ProxyPreserveHost On
+    ProxyRequests Off
+    
+    ProxyPass / http://localhost:{{ app_port }}/
+    ProxyPassReverse / http://localhost:{{ app_port }}/
+    
+    ErrorLog ${APACHE_LOG_DIR}/{{ app_name }}_error.log
+    CustomLog ${APACHE_LOG_DIR}/{{ app_name }}_access.log combined
+    
+    <Location />
+        Order allow,deny
+        Allow from all
+    </Location>
+    
+    <Directory />
+        Options FollowSymLinks
+        AllowOverride None
+    </Directory>
+</VirtualHost>
