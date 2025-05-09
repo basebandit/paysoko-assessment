@@ -4,8 +4,11 @@
 **/terraform.tfstate*
 **/terraform.plan
 **/terraform.auto.tfvars
-**/.terraform.lock.hcl
+**/!.terraform.lock.hcl
 **/errored.tfstate
+
+# ansible 
+**/.ansible
 
 # Ignore override files as they are usually used to override resources locally and so
 # are not checked in

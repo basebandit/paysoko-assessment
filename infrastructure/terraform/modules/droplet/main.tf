@@ -1,5 +1,5 @@
 locals {
-    droplet_names = length(var.droplet_names) == 0 ? [var.name] : var.droplet_names
+  droplet_names = length(var.droplet_names) == 0 ? [var.name] : var.droplet_names
 }
 
 resource "digitalocean_droplet" "app_server" {
@@ -10,8 +10,8 @@ resource "digitalocean_droplet" "app_server" {
   region   = var.region
   ssh_keys = var.ssh_key_ids
   vpc_uuid = var.vpc_uuid
-  
-  tags     = var.tags
+
+  tags      = var.tags
   user_data = var.userdata != "" ? var.userdata : null
   lifecycle {
     create_before_destroy = true
