@@ -1,8 +1,3 @@
-# variable "droplet_count" {
-#   description = "Number of droplets to create"
-#   type        = number
-# }
-
 variable "droplet_names" {
   description = "(Optional) List of droplet names. Use this when creating multiple droplets."
   type        = list(string)
