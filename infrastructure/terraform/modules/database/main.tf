@@ -2,7 +2,7 @@ locals {
   # Default versions based on engine type
   mysql_version = "8"
   pg_version    = "15"
-  
+
   # Determine which version to use
   version = var.engine_version != null ? var.engine_version : (
     var.engine == "mysql" ? local.mysql_version : local.pg_version

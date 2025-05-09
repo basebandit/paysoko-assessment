@@ -10,9 +10,9 @@ variable "droplet_names" {
 }
 
 variable "tags" {
- description = "Tags to identify droplets"
- type = list(string)
- default = []
+  description = "Tags to identify droplets"
+  type        = list(string)
+  default     = []
 }
 
 variable "image" {
@@ -21,16 +21,16 @@ variable "image" {
   default     = "ubuntu-22-04-x64"
 }
 
-variable "name"{
+variable "name" {
   description = "(Optional) Name of a single droplet. Set this when you only want to create one droplet."
-  type = string
-  default = ""
+  type        = string
+  default     = ""
 }
 
-variable "userdata"{
+variable "userdata" {
   description = "Cloud init config file"
-  type = string
-  default = ""
+  type        = string
+  default     = ""
 }
 
 variable "size" {
