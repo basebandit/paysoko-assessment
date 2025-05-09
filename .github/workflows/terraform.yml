@@ -1,0 +1,55 @@
+# .github/workflows/terraform.yml
+name: Terraform Infrastructure
+
+on:
+  push:
+    branches:
+      - main
+    paths:
+      - 'terraform/**'
+  pull_request:
+    paths:
+      - 'terraform/**'
+  workflow_dispatch:
+
+jobs:
+  terraform:
+    name: 'Terraform'
+    runs-on: ubuntu-22.04
+    
+    env:
+      TF_VAR_do_token: ${{ secrets.DO_TOKEN }}
+      TF_VAR_ssh_key: ${{ secrets.SSH_KEY_NAME }}
+      TF_VAR_do_spaces_access_key_id: ${{ secrets.DO_SPACES_ACCESS_KEY_ID }}
+      TF_VAR_do_spaces_access_key_secret: ${{ secrets.DO_SPACES_ACCESS_KEY_SECRET }}
+      TF_VAR_do_bucket_name: ${{ secrets.DO_BUCKET_NAME }}
+      # AWS credentials for S3 backend (DigitalOcean Spaces)
+      AWS_ACCESS_KEY_ID: ${{ secrets.DO_SPACES_ACCESS_KEY_ID }}
+      AWS_SECRET_ACCESS_KEY: ${{ secrets.DO_SPACES_ACCESS_KEY_SECRET }}
+    
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v3
+      
+      - name: Setup Terraform
+        uses: hashicorp/setup-terraform@v2
+        with:
+          terraform_version: '1.0.0'
+          terraform_wrapper: false
+      
+      - name: Terraform Init
+        working-directory: terraform
+        run: terraform init
+      
+      - name: Terraform Validate
+        working-directory: terraform
+        run: terraform validate
+      
+      - name: Terraform Plan
+        working-directory: terraform
+        run: terraform plan -out=tfplan
+      
+      - name: Terraform Apply
+        working-directory: terraform
+        if: github.ref == 'refs/heads/main' && github.event_name != 'pull_request'
+        run: terraform apply -auto-approve tfplan
