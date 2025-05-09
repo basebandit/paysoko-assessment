@@ -36,9 +36,9 @@
       
     - name: Determine current active container
       shell: |
-        if grep -q "ProxyPass.*:{{ blue_port }}" /etc/apache2/sites-available/{{ app_name }}.conf; then
+        if grep -q "ProxyPass.*:{{ blue_port }}" /etc/apache2/sites-available/{{ app_name }}.conf 2>/dev/null; then
           echo "blue"
-        elif grep -q "ProxyPass.*:{{ green_port }}" /etc/apache2/sites-available/{{ app_name }}.conf; then
+        elif grep -q "ProxyPass.*:{{ green_port }}" /etc/apache2/sites-available/{{ app_name }}.conf 2>/dev/null; then
           echo "green"
         else
           echo "none"
@@ -74,16 +74,14 @@
             ports:
               - "{{ blue_port }}:{{ app_port }}"
             env:
-              NODE_ENV: production
+              NODE_ENV: "production"
               DB_HOST: "{{ db_host }}"
               DB_PORT: "{{ db_port }}"
               DB_NAME: "{{ db_name }}"
               DB_USER: "{{ db_user }}"
               DB_PASSWORD: "{{ lookup('env', 'DB_PASSWORD') }}"
               DB_SSL: "{{ db_ssl }}"
-              # Add extra env vars for task service
-              "{{ env_extras | default({}) }}"
-              
+          
         - name: Update the Apache configuration
           template:
             src: templates/apache-vhost.conf.j2
@@ -118,16 +116,14 @@
             ports:
               - "{{ new_port }}:{{ app_port }}"
             env:
-              NODE_ENV: production
+              NODE_ENV: "production"
               DB_HOST: "{{ db_host }}"
               DB_PORT: "{{ db_port }}"
               DB_NAME: "{{ db_name }}"
               DB_USER: "{{ db_user }}"
               DB_PASSWORD: "{{ lookup('env', 'DB_PASSWORD') }}"
               DB_SSL: "{{ db_ssl }}"
-              # Add extra env vars for task service
-              "{{ env_extras | default({}) }}"
-              
+          
         - name: Wait for container to become healthy
           uri:
             url: "http://localhost:{{ new_port }}/health"
