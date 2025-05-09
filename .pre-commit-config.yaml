@@ -1,0 +1,40 @@
+# .pre-commit-config.yaml
+repos:
+  # Terraform documentation generator
+  - repo: https://github.com/terraform-docs/terraform-docs
+    rev: "v0.16.0"
+    hooks:
+      - id: terraform-docs-go
+        args: ["markdown", "table", "--output-file", "README.md", "./"]
+        files: ^infrastructure/terraform/
+        pass_filenames: false
+
+  # Terraform linting and security scanning
+  - repo: https://github.com/antonbabenko/pre-commit-terraform
+    rev: "v1.74.1"
+    hooks:
+      - id: terraform_fmt
+        files: ^infrastructure/terraform/
+      - id: terraform_tflint
+        files: ^infrastructure/terraform/
+      - id: terraform_validate
+        files: ^infrastructure/terraform/
+      - id: terraform_tfsec
+        files: ^infrastructure/terraform/
+
+  # YAML linting
+  - repo: https://github.com/adrienverge/yamllint
+    rev: v1.29.0
+    hooks:
+      - id: yamllint
+        args: ["-f", "parsable", "-c", ".yamllint.yml"]
+        files: \.(yml|yaml)$
+
+  # Ansible linting
+  - repo: https://github.com/ansible-community/ansible-lint
+    rev: v6.14.3
+    hooks:
+      - id: ansible-lint
+        files: ^infrastructure/ansible/
+        args: ["-p"]
+        additional_dependencies: ["ansible-core>=2.12.0"]
