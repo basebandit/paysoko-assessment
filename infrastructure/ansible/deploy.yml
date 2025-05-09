@@ -1,0 +1,196 @@
+---
+- name: Blue-Green Deployment for Node.js Applications
+  hosts: nodejs_servers
+  become: yes
+  vars:
+    service: "{{ service | default('') }}"
+    version: "{{ version | default('latest') }}"
+    rollback: "{{ rollback | default('false') }}"
+    blue_port: "{{ app_port }}"
+    green_port: "{{ app_port | int + 100 }}"  # e.g., 3000 -> 3100, 3001 -> 3101
+    
+  tasks:
+    - name: Check if service is being deployed to this host
+      fail:
+        msg: "Service {{ service }} is not deployed on this host"
+      when: app_name != service and service != ''
+      
+    - name: Set facts for blue/green deployment
+      set_fact:
+        current_container: "{{ app_name }}-blue"
+        new_container: "{{ app_name }}-green"
+        image_name: "cyclon/{{ app_name }}"
+        current_port: "{{ blue_port }}"
+        new_port: "{{ green_port }}"
+        active_color: "blue"
+        
+    - name: Check if blue container exists
+      command: docker ps -a --filter "name={{ app_name }}-blue" --format "{{ '{{' }}.Names{{ '}}' }}"
+      register: blue_exists
+      changed_when: false
+      
+    - name: Check if green container exists
+      command: docker ps -a --filter "name={{ app_name }}-green" --format "{{ '{{' }}.Names{{ '}}' }}"
+      register: green_exists
+      changed_when: false
+      
+    - name: Determine current active container
+      shell: |
+        if grep -q "ProxyPass.*:{{ blue_port }}" /etc/apache2/sites-available/{{ app_name }}.conf; then
+          echo "blue"
+        elif grep -q "ProxyPass.*:{{ green_port }}" /etc/apache2/sites-available/{{ app_name }}.conf; then
+          echo "green"
+        else
+          echo "none"
+        fi
+      register: current_active
+      changed_when: false
+      
+    - name: Update active color fact
+      set_fact:
+        active_color: "{{ current_active.stdout }}"
+        current_container: "{{ app_name }}-{{ current_active.stdout }}"
+        new_container: "{{ app_name }}-{{ 'green' if current_active.stdout == 'blue' else 'blue' }}"
+        current_port: "{{ blue_port if current_active.stdout == 'blue' else green_port }}"
+        new_port: "{{ green_port if current_active.stdout == 'blue' else blue_port }}"
+      when: current_active.stdout != "none"
+      
+    # For first deployment, set up initial blue container
+    - name: First time setup - blue container
+      block:
+        - name: Pull the Docker image
+          docker_image:
+            name: "{{ image_name }}:{{ version }}"
+            source: pull
+          
+        - name: Run the blue container
+          docker_container:
+            name: "{{ app_name }}-blue"
+            image: "{{ image_name }}:{{ version }}"
+            state: started
+            restart_policy: always
+            networks:
+              - name: app_network
+            ports:
+              - "{{ blue_port }}:{{ app_port }}"
+            env:
+              NODE_ENV: production
+              DB_HOST: "{{ db_host }}"
+              DB_PORT: "{{ db_port }}"
+              DB_NAME: "{{ db_name }}"
+              DB_USER: "{{ db_user }}"
+              DB_PASSWORD: "{{ lookup('env', 'DB_PASSWORD') }}"
+              DB_SSL: "{{ db_ssl }}"
+              # Add extra env vars for task service
+              "{{ env_extras | default({}) }}"
+              
+        - name: Update the Apache configuration
+          template:
+            src: templates/apache-vhost.conf.j2
+            dest: "/etc/apache2/sites-available/{{ app_name }}.conf"
+            mode: '0644'
+          vars:
+            container_port: "{{ blue_port }}"
+            
+        - name: Restart Apache
+          service:
+            name: apache2
+            state: restarted
+      when: blue_exists.stdout == "" and green_exists.stdout == ""
+      
+    # Normal blue-green deployment process
+    - name: Blue-Green Deployment
+      block:
+        - name: Pull new Docker image
+          docker_image:
+            name: "{{ image_name }}:{{ version }}"
+            source: pull
+          when: rollback == 'false'
+          
+        - name: Run the new container
+          docker_container:
+            name: "{{ new_container }}"
+            image: "{{ image_name }}:{{ version if rollback == 'false' else 'v1.0.0' }}"
+            state: started
+            restart_policy: always
+            networks:
+              - name: app_network
+            ports:
+              - "{{ new_port }}:{{ app_port }}"
+            env:
+              NODE_ENV: production
+              DB_HOST: "{{ db_host }}"
+              DB_PORT: "{{ db_port }}"
+              DB_NAME: "{{ db_name }}"
+              DB_USER: "{{ db_user }}"
+              DB_PASSWORD: "{{ lookup('env', 'DB_PASSWORD') }}"
+              DB_SSL: "{{ db_ssl }}"
+              # Add extra env vars for task service
+              "{{ env_extras | default({}) }}"
+              
+        - name: Wait for container to become healthy
+          uri:
+            url: "http://localhost:{{ new_port }}/health"
+            status_code: 200
+          register: health_check
+          until: health_check.status == 200
+          retries: 12
+          delay: 5
+          ignore_errors: true
+          
+        - name: Update Apache configuration to point to new container
+          template:
+            src: templates/apache-vhost.conf.j2
+            dest: "/etc/apache2/sites-available/{{ app_name }}.conf"
+            mode: '0644'
+          vars:
+            container_port: "{{ new_port }}"
+            
+        - name: Restart Apache
+          service:
+            name: apache2
+            state: restarted
+            
+        - name: Wait for new container to handle traffic
+          pause:
+            seconds: 10
+            
+        - name: Stop and remove old container
+          docker_container:
+            name: "{{ current_container }}"
+            state: absent
+            
+        - name: Log deployment success
+          debug:
+            msg: "Successfully deployed {{ app_name }} version {{ version }} using blue-green deployment"
+      when: (blue_exists.stdout != "" or green_exists.stdout != "") and rollback == 'false'
+      
+    # Rollback process
+    - name: Rollback Deployment
+      block:
+        - name: Update Apache configuration to point back to original container
+          template:
+            src: templates/apache-vhost.conf.j2
+            dest: "/etc/apache2/sites-available/{{ app_name }}.conf"
+            mode: '0644'
+          vars:
+            container_port: "{{ current_port }}"
+            
+        - name: Restart Apache
+          service:
+            name: apache2
+            state: restarted
+            
+        - name: Wait for original container to handle traffic
+          pause:
+            seconds: 10
+            
+        - name: Stop and remove new container
+          docker_container:
+            name: "{{ new_container }}"
+            state: absent
+            
+        - name: Log rollback success
+          debug:
+            msg: "Successfully rolled back {{ app_name }} to previous version"
+      when: rollback == 'true'
