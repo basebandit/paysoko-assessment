@@ -19,7 +19,7 @@ on:
 jobs:
   ansible:
     name: 'Ansible Configuration'
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-22.04
     
     steps:
       - name: Checkout code
@@ -64,7 +64,7 @@ jobs:
         run: ansible-playbook -i inventory/hosts.yml setup.yml
         env:
           ANSIBLE_HOST_KEY_CHECKING: False
-          DB_PASSWORD: ${{ secrets.DB_PASSWORD }}
+          DB_PASSWORD: ${{ secrets.DB_PASSWORD }} 
       
       - name: Run Deployment Playbook
         if: github.event.inputs.action == 'deploy'
