@@ -1,3 +1,10 @@
+# locals {
+#   web_init_script = templatefile("${path.module}/server-setup.sh.tftpl", {
+#     php_version    = var.php_version,
+#     nodejs_version = var.nodejs_version,
+#   })
+# }
+
 module "app_servers" {
   source = "./modules/droplet"
 
@@ -9,6 +16,8 @@ module "app_servers" {
     "multi-app-server2-${var.region}"
   ]
 
+  size = var.droplet_size
+  # userdata    = local.web_init_script
   region      = var.region
   tags        = ["web"]
   vpc_uuid    = digitalocean_vpc.app_network.id
@@ -78,13 +87,13 @@ resource "digitalocean_firewall" "web_firewall" {
   outbound_rule {
     protocol              = "tcp"
     port_range            = "1-65535"
-    destination_addresses = [digitalocean_vpc.app_network.ip_range]
+    destination_addresses = ["0.0.0.0/0", "::/0"] # Allow all IPv4 and IPv6 destinations
   }
 
   outbound_rule {
     protocol              = "udp"
     port_range            = "1-65535"
-    destination_addresses = [digitalocean_vpc.app_network.ip_range]
+    destination_addresses = ["0.0.0.0/0", "::/0"] # Allow all IPv4 and IPv6 destinations
   }
 
   outbound_rule {

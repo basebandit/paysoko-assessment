@@ -27,6 +27,12 @@ variable "name"{
   default = ""
 }
 
+variable "userdata"{
+  description = "Cloud init config file"
+  type = string
+  default = ""
+}
+
 variable "size" {
   description = "Size of droplet to create"
   type        = string

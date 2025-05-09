@@ -43,3 +43,15 @@ output "database_uri" {
 output "vpc_uuid" {
   value = digitalocean_vpc.app_network.id
 }
+
+output "do_bucket_name" {
+  value = digitalocean_spaces_bucket.remote_state.name
+}
+
+output "do_bucket_urn" {
+  value = digitalocean_spaces_bucket.remote_state.urn
+}
+
+output "do_bucket_endpoint" {
+  value = digitalocean_spaces_bucket.remote_state.endpoint
+}
