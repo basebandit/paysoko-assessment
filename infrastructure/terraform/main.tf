@@ -1,10 +1,3 @@
-# locals {
-#   web_init_script = templatefile("${path.module}/server-setup.sh.tftpl", {
-#     php_version    = var.php_version,
-#     nodejs_version = var.nodejs_version,
-#   })
-# }
-
 module "app_servers" {
   source = "./modules/droplet"
 
