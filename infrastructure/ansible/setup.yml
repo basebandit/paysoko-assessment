@@ -64,7 +64,7 @@
         
     - name: Add Docker repository
       apt_repository:
-        repo: deb [arch=amd64] https://download.docker.com/linux/ubuntu {{ ansible_distribution_release }} stable
+        repo: "deb [arch=amd64] https://download.docker.com/linux/ubuntu {{ ansible_distribution_release }} stable"
         state: present
         
     - name: Install Docker
@@ -97,6 +97,24 @@
         name: "{{ app_image }}"
         source: pull
         
+    - name: Create environment file for application
+      copy:
+        dest: "/opt/{{ app_name }}.env"
+        content: |
+          NODE_ENV=production
+          DB_HOST={{ db_host }}
+          DB_PORT={{ db_port }}
+          DB_NAME={{ db_name }}
+          DB_USER={{ db_user }}
+          DB_PASSWORD={{ lookup('env', 'DB_PASSWORD') }}
+          DB_SSL={{ db_ssl }}
+          {% if env_extras is defined %}
+          {% for key, value in env_extras.items() %}
+          {{ key }}={{ value }}
+          {% endfor %}
+          {% endif %}
+        mode: '0600'
+        
     - name: Run application container
       docker_container:
         name: "{{ app_name }}"
@@ -107,16 +125,7 @@
           - name: app_network
         ports:
           - "{{ app_port }}:{{ app_port }}"
-        env:
-          NODE_ENV: production
-          DB_HOST: "{{ db_host }}"
-          DB_PORT: "{{ db_port }}"
-          DB_NAME: "{{ db_name }}"
-          DB_USER: "{{ db_user }}"
-          DB_PASSWORD: "{{ lookup('env', 'DB_PASSWORD') }}"
-          DB_SSL: "{{ db_ssl }}"
-          # Add optional extra env vars if defined (like USER_SERVICE_URL)
-          "{{ env_extras | default({}) }}"
+        env_file: "/opt/{{ app_name }}.env"
         
     - name: Enable Apache modules
       apache2_module:
@@ -144,3 +153,4 @@
       service:
         name: apache2
         state: restarted
+        
