@@ -1,0 +1,25 @@
+exclude_paths:
+  - .git/
+  - .github/
+  - venv/
+  - apps/
+
+parseable: true
+quiet: false
+verbosity: 1
+
+mock_modules:
+  - digitalocean
+
+skip_list:
+  - '204'  # Lines should be no longer than 160 chars
+  - '301'  # Commands should not change things if nothing needs doing
+  - '303'  # Using command rather than module
+  - '306'  # Shells that use pipes should set the pipefail option
+  - '403'  # Package installs should not use latest
+  - yaml  # Ignore YAML violations (covered by yamllint)
+
+warn_list:
+  - '208'  # File permissions unset or incorrect
+
+use_default_rules: true
