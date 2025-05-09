@@ -57,6 +57,26 @@ variable "droplet_count" {
   default     = 5
 }
 
+variable "db_user_service" {
+  description = "User Service Database name"
+  type        = string
+}
+
+variable "db_task_service" {
+  description = "Task Service Database name"
+  type        = string
+}
+
+variable "user_service_db_user" {
+  description = "User Service Database user"
+  type        = string
+}
+
+variable "task_service_db_user" {
+  description = "Task Service Database user"
+  type        = string
+}
+
 variable "do_bucket_name" {
   description = "Name of the state bucket"
   type        = string

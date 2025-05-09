@@ -29,25 +29,25 @@ module "app_database" {
 }
 
 # Create Node.js database and user
-resource "digitalocean_database_db" "nodejs_db" {
+resource "digitalocean_database_db" "user_service_db" {
   cluster_id = module.app_database.cluster_id
-  name       = "nodejs_db"
+  name       = var.db_user_service
 }
 
-resource "digitalocean_database_user" "nodejs_user" {
+resource "digitalocean_database_user" "user_service_db_user" {
   cluster_id = module.app_database.cluster_id
-  name       = "nodejs_user"
+  name       = var.user_service_db_user
 }
 
 # Create Laravel database and user
-resource "digitalocean_database_db" "laravel_db" {
+resource "digitalocean_database_db" "task_service_db" {
   cluster_id = module.app_database.cluster_id
-  name       = "laravel_db"
+  name       = var.db_task_service
 }
 
-resource "digitalocean_database_user" "laravel_user" {
+resource "digitalocean_database_user" "task_service_db_user" {
   cluster_id = module.app_database.cluster_id
-  name       = "laravel_user"
+  name       = var.task_service_db_user
 }
 
 # Create a firewall
