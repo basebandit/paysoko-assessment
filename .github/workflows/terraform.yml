@@ -27,8 +27,12 @@ env:
 
 jobs:
   terraform:
-    name: "Terraform Infrastructure Change Management"
-    runs-on: ubuntu-latest
+    name: "Terraform"
+    runs-on: ubuntu-22.04
+    permissions:
+      contents: read
+      pull-requests: write  # This is crucial for commenting on PRs
+      issues: write
     defaults:
       run:
         shell: bash
