@@ -1,0 +1,47 @@
+name: 'Terraform Destroy'
+
+on:
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  terraform:
+    name: 'Terraform Destroy'
+    runs-on: ubuntu-22.04
+    
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+        
+      - name: Setup Terraform
+        uses: hashicorp/setup-terraform@v2
+        with:
+          terraform_version: '1.0.0'
+          
+      - name: Terraform Init
+        working-directory: ./infrastructure/terraform
+        run: terraform init
+        env:
+          TF_LOG: ERROR
+          TF_VAR_do_token: ${{ secrets.DO_TOKEN }}
+          TF_VAR_ssh_key: ${{ secrets.SSH_KEY_NAME }}
+          TF_VAR_do_spaces_access_key_id: ${{ secrets.DO_SPACES_ACCESS_KEY_ID }}
+          TF_VAR_do_spaces_access_key_secret: ${{ secrets.DO_SPACES_ACCESS_KEY_SECRET }}
+          TF_VAR_do_bucket_name: "paysoko-assessment"
+          AWS_ACCESS_KEY_ID: ${{ secrets.DO_SPACES_ACCESS_KEY_ID }}
+          AWS_SECRET_ACCESS_KEY: ${{ secrets.DO_SPACES_ACCESS_KEY_SECRET }}
+      
+      - name: Terraform Destroy
+        working-directory: ./infrastructure/terraform
+        run: terraform destroy -auto-approve
+        env:
+          TF_LOG: ERROR
+          TF_VAR_do_token: ${{ secrets.DO_TOKEN }}
+          TF_VAR_ssh_key: ${{ secrets.SSH_KEY_NAME }}
+          TF_VAR_do_spaces_access_key_id: ${{ secrets.DO_SPACES_ACCESS_KEY_ID }}
+          TF_VAR_do_spaces_access_key_secret: ${{ secrets.DO_SPACES_ACCESS_KEY_SECRET }}
+          TF_VAR_do_bucket_name: "paysoko-assessment"
+          AWS_ACCESS_KEY_ID: ${{ secrets.DO_SPACES_ACCESS_KEY_ID }}
+          AWS_SECRET_ACCESS_KEY: ${{ secrets.DO_SPACES_ACCESS_KEY_SECRET }}
