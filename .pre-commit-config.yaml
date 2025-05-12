@@ -1,4 +1,3 @@
-# .pre-commit-config.yaml
 repos:
   # Terraform documentation generator
   - repo: https://github.com/terraform-docs/terraform-docs
