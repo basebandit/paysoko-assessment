@@ -1,0 +1,32 @@
+{
+  "name": "nodejs-app1",
+  "version": "1.0.0",
+  "description": "Assessment Node.js App 1",
+  "keywords": [
+    "Devops",
+    "Ansible",
+    "Terraform",
+    "Nodejs"
+  ],
+  "homepage": "https://github.com/basebandit/paysoko-assessment#readme",
+  "bugs": {
+    "url": "https://github.com/basebandit/paysoko-assessment/issues"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/basebandit/paysoko-assessment.git"
+  },
+  "license": "MIT",
+  "author": "basebandit",
+  "type": "commonjs",
+  "main": "index.js",
+  "scripts": {
+    "test": "echo \"Error: no test specified\" && exit 1"
+  },
+  "dependencies": {
+    "errorhandler": "^1.5.1",
+    "express": "^5.1.0",
+    "pg": "^8.15.6",
+    "pino": "^9.6.0"
+  }
+}
