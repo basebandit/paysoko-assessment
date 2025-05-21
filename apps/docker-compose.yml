@@ -1,0 +1,50 @@
+services:
+  user-service:
+  # uncomment if using local build
+    # build:
+    #   context: ./user-service 
+    image: cyclon/user-service:v1.0.0 # comment out if using local docker build
+    ports:
+      - "3000:3000"
+    environment:
+      - NODE_ENV=development
+      - DB_HOST=postgres
+      - DB_PORT=5432
+      - DB_NAME=postgres
+      - DB_USER=postgres
+      - DB_PASSWORD=postgres
+      - DB_SSL=false
+    depends_on:
+      - postgres
+
+  task-service:
+    # uncomment if using local build
+    # build:
+    #   context: ./task-service 
+    image: cyclon/task-service:v1.0.0 # comment out if using local docker build
+    ports:
+      - "3001:3001"
+    environment:
+      - NODE_ENV=development
+      - DB_HOST=postgres
+      - DB_PORT=5432
+      - DB_NAME=postgres
+      - DB_USER=postgres
+      - DB_PASSWORD=postgres
+      - DB_SSL=false
+      - USER_SERVICE_URL=http://user-service:3000
+    depends_on:
+      - user-service
+      - postgres
+
+  postgres:
+    image: postgres:15-alpine
+    environment:
+      - POSTGRES_PASSWORD=postgres
+    ports:
+      - "5432:5432"
+    volumes:
+      - postgres-data:/var/lib/postgresql/data
+
+volumes:
+  postgres-data:
